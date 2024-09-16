@@ -1,11 +1,15 @@
 package ru.netology;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -13,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Server implements Runnable {
 
@@ -20,6 +25,7 @@ public class Server implements Runnable {
     protected List<String> validPaths;
     protected Thread runningThread= null;
     protected final ExecutorService threadingPool = Executors.newFixedThreadPool(64);
+    protected List<NameValuePair> quaryParams;
 
     public Server(int port, List<String> validPaths) {
         this.port = port;
@@ -71,7 +77,19 @@ public class Server implements Runnable {
                 socket.close();
             }
 
-            final var path = parts[1];
+            final var path = parts[1].split("\\?")[0];
+            System.out.println(path);
+
+            if (parts[1].split("\\?").length == 2) {
+                final var params = parts[1].split("\\?")[1];
+                this.quaryParams = URLEncodedUtils.parse(params, StandardCharsets.UTF_8);
+
+            }
+
+            System.out.println(getQuaryParam("login"));
+            System.out.println(getQuaryParams());
+
+
             if (!this.validPaths.contains(path)) {
                 out.write((
                         "HTTP/1.1 404 Not Found\r\n" +
@@ -122,4 +140,24 @@ public class Server implements Runnable {
         }
 
     }
+
+    public List<NameValuePair> getQuaryParam(String name) {
+        if (this.quaryParams != null){
+            return this.quaryParams.stream().filter(p -> p.getName().equals(name)).collect(Collectors.toList());
+        }
+        else {
+//            throw new Exception("No params");
+            return null;
+        }
+    }
+
+    public List<NameValuePair> getQuaryParams()  {
+        if (this.quaryParams != null){
+            return this.quaryParams;
+        }
+        else {
+            return null;
+        }
+    }
+
 }
